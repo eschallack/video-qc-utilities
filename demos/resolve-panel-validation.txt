@@ -1,0 +1,9 @@
+
+DaVinci Resolve Script Interpreter
+Copyright (C) 2005 - 2026 Blackmagic Design Pty. Ltd.
+
+Panel:UIWindow (0x0x49fd4fac0) [App: 'Resolve' on 127.0.0.1, UUID: 7df2df8f-2151-4a23-9272-a95380d2667b]	
+Scan:Open current clip in URL Guard	
+Masks:Import Fusion masks	
+Status:Ready	
+PANEL LOAD PASSED:21.0.1.11	

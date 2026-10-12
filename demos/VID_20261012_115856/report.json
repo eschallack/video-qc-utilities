@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "source": "/Users/evanschallack/Documents/GitHub/video-qc-utilities/tests/fixtures/video/VID_20261012_115856.mp4",
+  "output": "/Users/evanschallack/Documents/GitHub/video-qc-utilities/demos/VID_20261012_115856",
+  "frames": 192,
+  "tracks": 7,
+  "ocr_scans": 24,
+  "tracking_losses": 6,
+  "config": {
+    "scan_interval": 8,
+    "ocr_max_side": 1600,
+    "confidence": 0.45,
+    "padding": 10,
+    "blur_sigma": 18.0,
+    "hold_seconds": 2.0,
+    "lookback_seconds": 1.0,
+    "threads": 2,
+    "crf": 18,
+    "preset": "fast",
+    "sideways": true
+  },
+  "timings": {
+    "analysis_seconds": 36.11062787500123,
+    "render_seconds": 9.488587416999508
+  },
+  "elapsed_seconds": 46.16219212499709,
+  "review_required": true,
+  "warnings": [
+    "OCR may miss small, occluded, or briefly visible URLs. Review the full render.",
+    "Fusion masks assume matching display dimensions and a 1:1, unretimed clip."
+  ]
+}

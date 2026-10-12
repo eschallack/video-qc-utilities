@@ -1,0 +1,38 @@
+[
+  {
+    "clip": "VID_20261012_115842.mp4",
+    "source_frames": 217,
+    "output_frames": 217,
+    "max_video_pts_error_seconds": 0.0,
+    "audio_payloads_and_pts_identical": true,
+    "output_rotation": 0,
+    "output_dimensions": [
+      1280,
+      720
+    ]
+  },
+  {
+    "clip": "VID_20261012_115856.mp4",
+    "source_frames": 192,
+    "output_frames": 192,
+    "max_video_pts_error_seconds": 0.0,
+    "audio_payloads_and_pts_identical": true,
+    "output_rotation": 0,
+    "output_dimensions": [
+      720,
+      1280
+    ]
+  },
+  {
+    "clip": "VID_20261012_115919.mp4",
+    "source_frames": 322,
+    "output_frames": 322,
+    "max_video_pts_error_seconds": 0.0,
+    "audio_payloads_and_pts_identical": true,
+    "output_rotation": 0,
+    "output_dimensions": [
+      1280,
+      720
+    ]
+  }
+]
