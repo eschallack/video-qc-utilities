@@ -1,65 +1,60 @@
-# Engine and adapter contracts
-
-The engine lives in `src/video_qc`. It imports no Qt or Resolve code. `desktop.py` is optional and loaded only by the desktop entry point. The Resolve adapter imports only the host Python standard library and launches the engine's own environment.
+# Native architecture
 
 ```mermaid
 flowchart LR
-    Desktop[Qt desktop] --> CLI[CLI / JSON events]
-    Resolve[Resolve panel] --> Desktop
-    Native[Native application] --> API[Python API]
-    CLI --> Engine[Streaming pipeline]
-    API --> Engine
-    Engine --> OCR[RapidOCR / ONNX]
-    Engine --> Motion[OpenCV LK + RANSAC]
-    Engine --> Store[SQLite tracking]
-    Store --> Renderer[PyAV ROI blur + FFmpeg audio mux]
-    Store --> Fusion[Animated Fusion importer]
-    Engine --> QC[FFmpeg QC filters]
+    UI[SwiftUI + AVPlayer] --> IPC[Rust CLI / NDJSON]
+    Resolve[Resolve Python panel] --> UI
+    API[Rust library callers] --> Core[Rust pipeline]
+    IPC --> Core
+    Core --> Decode[AVFoundation reader]
+    Decode --> OCR[Apple Vision]
+    Decode --> Track[OpenCV LK + RANSAC]
+    Track --> DB[SQLite quadrilateral samples]
+    DB --> Render[Metal / Core Image]
+    Render --> Encode[VideoToolbox H.264]
+    Encode --> Audio[FFmpeg audio stream copy]
+    DB --> Fusion[Four-corner Fusion importer]
+    Core --> QC[FFmpeg QC filters]
 ```
 
-## Modules
+## Boundaries
 
-| Module | Responsibility |
-| --- | --- |
-| `models` | Validated immutable configuration and detector protocol |
-| `urls` | URL candidate syntax and offline public-suffix classification |
-| `ocr` | Shared ONNX sessions, perpendicular text pass, character-level URL bounds |
-| `media` | ffprobe metadata, display rotation, timestamped decoding, cancellable child processes |
-| `tracking` | Sparse LK flow, backward consistency, local affine RANSAC, track association |
-| `store` | Disk-backed samples and streaming JSON export |
-| `render` | Padded region blur, VFR timestamps, audio stream copying |
-| `fusion` | Bottom-left normalized coordinates, time mapping, editable masks |
-| `qc` | FFmpeg blackdetect, freezedetect, silencedetect, loudnorm measurements |
-| `pipeline` | Job lifecycle and completed result publication |
+`macos/Sources/URLGuardKit` owns settings, job state, batch queues, cancellation, and the asynchronous process protocol. `URLGuardApp` owns SwiftUI views and native file panels. AVPlayer previews media without copying decoded pixels into SwiftUI.
 
-## Detector
+The UI launches a bundled Rust executable. Standard output is newline-delimited JSON; diagnostics use stderr. Blocking pipe reads and process waits run on a background queue. Only model updates run on the main actor. Cancellation uses a marker file, allowing Rust to clean up staged outputs instead of terminating it abruptly.
 
-Implement `detect(image: numpy.ndarray) -> list[Detection]`. Input is BGR uint8 in display orientation. Detection boxes are `(x, y, width, height)` in the same full-resolution display coordinates. Confidence ranges from zero to one. Return a fresh list and fresh detections each call; the tracker updates its own detection objects.
+`rust/src` contains the reusable Rust library and CLI. Modules separate validation, geometry, URL classification, tracking state, media commands, persistent samples, QC, Fusion export, and job orchestration. `native.rs` provides owning RAII wrappers around Apple framework handles. Readers/writers are deliberately not shared across threads.
 
-RapidOCR supplies character boxes. URL spans use those boxes; the complete text-line box is the fallback when character alignment is unavailable. Recognized `www.`/HTTP prefixes are accepted even when OCR corrupts the domain suffix. Bare domains use tldextract's bundled public suffix snapshot. Email redaction is outside this detector's scope.
+`rust/native/apple.mm` is a thin Objective-C++ adapter to AVFoundation, Vision, Core Image, Metal, and VideoToolbox. It is not a second job engine. `tracking.cpp` invokes established OpenCV implementations. OpenCV is built statically with only the required modules and its arm64 NEON implementation.
 
-## Pipeline
+The current native media adapter is macOS-specific. Portable configuration/geometry/storage/protocol code remains separate from this adapter. Other media platforms need their own reader/OCR/renderer implementation. The old Python engine is retained for comparison and existing callers, with an explicit `video-qc-legacy` command.
 
-Analysis decodes sequentially. OCR runs at a configurable cadence and on strong scene changes. Half-resolution grayscale frames drive optical flow. Forward/backward consistency and RANSAC reject unstable motion. Oriented quadrilaterals are retained internally to avoid repeated rectangle inflation. Exports use conservative axis-aligned bounds.
+## Tracking models
 
-A bounded history enables new detections to propagate backward. Reliable forward motion can bridge OCR misses for two seconds by default. Tracks end when motion fails, the hold duration expires, or a cut is detected. Histories are cleared at cuts. Hard cuts, fades, severe motion blur, and prolonged occlusion still need review.
+Both modes retain four-corner polygons. Optical flow uses grayscale images at half display resolution, up to 100 feature points, a pyramidal LK window, and forward/backward consistency checks.
 
-Analysis writes SQLite incrementally. A second sequential pass renders masks. JSON and Lua export stream database rows. A temporary sibling folder receives the job; a completed folder is published after all outputs succeed. Existing results are rejected. Cancellation or an exception removes the staged job. An externally forced kill can leave a `.video-qc-*` staging folder.
+Transform uses `estimateAffinePartial2D`: translation, rotation, uniform scale. Perspective uses `findHomography`: an eight-parameter projective transform. It requires at least eight reliable features, RANSAC consensus, and reasonable resulting polygon area. Nonfinite, inverted, degenerate, or offscreen results are rejected. Full OCR scans refresh detections; reliable flow bridges the frames between scans. An OCR scan retires tracks it does not confirm, even when the background remains trackable.
 
-Memory is bounded by current frames, OCR sessions, and the configured history. Export sizes grow with duration and URL count. Fusion itself loads each track's animation samples while importing; very long imports can require substantial host memory.
+New detections begin on the positive OCR frame. There is no backward propagation or speculative pre-roll. Only the previous grayscale frame is retained for forward tracking. Cuts clear tracking. Samples are written incrementally to SQLite. JSON and Fusion exports stream database rows. A second pass renders using the stored geometry. Source frames are never accumulated for the full clip. An interval of one runs OCR on every frame; larger intervals trade precise onset/disappearance confirmation for fewer OCR passes. The former native `lookback_seconds` configuration field was removed; old serialized configurations may contain it, but it has no effect.
 
-## Timing and coordinates
+## Masks
 
-Decoded presentation timestamps are normalized to the first video frame. Rendering keeps relative source PTS and the source time base. Display rotation is baked into the image; the output has no rotation tag. Audio timestamps are shifted by the source video start time, then stream-copied. MP4 movie timescale is 720000, compatible with common 90 kHz video and 48 kHz audio clocks.
+Padding offsets each polygon edge outward and intersects neighboring offset edges. It preserves the tracked shape. Metal builds a white projective polygon against black, unions overlaps with maximum compositing, then applies the configured Gaussian feather. Feather zero disables edge smoothing. Image blur and mask feather are separate parameters.
 
-Tracking JSON has `schema_version: 1`, `frame_origin: 0`, and `coordinates: display_pixels_top_left`. A track has an ID, recognized URL, OCR confidence, and ordered samples. Each sample has `frame`, `seconds`, `box`, and `method` (`ocr`, `flow`, or `backfill`). Confidence is the initial OCR confidence for the track, not a per-frame tracking score. Track IDs identify continuous tracking segments, not unique domain names.
+The renderer creates one Metal-backed Core Image context per native reader/writer session. CVPixelBuffer/IOSurface buffers carry frames to hardware H.264 encoding. Hardware encoding is required; unsupported hardware fails instead of silently switching to a slow encoder.
 
-Fusion converts `seconds * timeline_fps` to integer composition frames. Center Y is flipped; width and height are normalized independently. Padding matches the rendered ROI. Mask Level uses stepped keys, including disabled guard frames, so missing intervals stay unmasked. Fusion blur strength is editable and uses Fusion's units; it is not a pixel-identical copy of OpenCV's Gaussian.
+## Coordinates and timing
 
-## Process interface
+Source rotation is baked into display-oriented frames. AV track transforms use top-left image axes; the native adapter converts these to Core Image's bottom-left axes. Grayscale tracking rows and exported polygons use top-left display coordinates. Character-level Vision bounds select URL spans where available.
 
-`video-qc blur SOURCE --output DIRECTORY --json-progress` writes one JSON object per line on stdout. Diagnostics go to stderr. Progress objects contain `stage`, `frame`, `seconds`, and `duration`. Stages are `analyze`, `render`, `qc`, and `complete`, followed by a `result` object containing the report.
+Tracking schema 2 contains `quad: [[x,y], ...]` in cyclic corner order and a compatibility `box: [x,y,width,height]`. Each sample includes frame index, seconds, and method (`ocr`, `flow`). Historical renders may contain `backfill` samples; new renders do not. Track IDs identify continuous tracking segments, not unique domains. Reappearance after a negative scan starts a new segment.
 
-Exit status: zero for a completed result, one for a failed job, 130 for cancellation. `--cancel-file PATH` cancels when the marker exists; the caller owns marker cleanup. This works for Windows console subprocesses as well as macOS. SIGINT/SIGTERM also cancel the CLI on supported systems.
+Video timestamps are normalized to the first decoded frame. AVAssetWriter uses a 720000 Hz media/movie timescale to preserve the source's common video/audio clocks. Audio is shifted relative to the source video start and stream-copied by FFmpeg. All six fixture renders were independently verified for frame/timestamp/audio preservation.
 
-Python callers can inject `progress` and `cancelled` callbacks. Cancellation is checked between frames and while waiting for media children. OCR inference already in progress finishes before cancellation is observed. Use one detector per concurrent job. For multiple jobs, use separate worker processes to isolate codec/model state and bound CPU use.
+Fusion flips Y and normalizes coordinates. It maps seconds to composition frames and applies the configured trim offset. Four independent Path modifiers drive CornerPositioner; BitmapMask selects Alpha and applies SoftEdge. Stepped Level keys disable mask gaps. Fusion blur/SoftEdge use the host's units and kernels, so appearance is editable rather than pixel-identical to Core Image.
+
+## Completion and failures
+
+A sibling temporary directory receives outputs. The directory is renamed only after all artifacts succeed. Existing result folders are rejected. Errors/cancellation drop native handles, close SQLite, and remove staged results. A forced external kill can leave a `.video-qc-*` staging folder.
+
+Exit codes: 0 completed, 1 failed, 130 cancelled. Progress stages: `analyze`, `render`, `qc`, `complete`, then `result` with the report. Native inference already in flight finishes before the next cancellation check.

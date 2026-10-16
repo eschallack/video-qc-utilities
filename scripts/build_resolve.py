@@ -12,7 +12,15 @@ def build(destination: Path, python: Path):
     destination.mkdir(parents=True, exist_ok=True)
     shutil.copy2(root / "integrations/resolve/URL Guard.py", destination / "URL Guard.py")
     (destination / "url_guard_config.json").write_text(
-        json.dumps({"python": str(python.resolve()), "project_root": str(root)}, indent=2) + "\n"
+        json.dumps(
+            {
+                "python": str(python.resolve()),
+                "project_root": str(root),
+                "native_app": str(root / "dist/URL Guard.app"),
+            },
+            indent=2,
+        )
+        + "\n"
     )
     print(destination.resolve())
 

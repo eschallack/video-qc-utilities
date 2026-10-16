@@ -1,0 +1,36 @@
+{
+  "schema_version": 2,
+  "source": "/Users/evanschallack/Documents/GitHub/video-qc-utilities/tests/fixtures/video/VID_20261012_115856.mp4",
+  "output": "/Users/evanschallack/Documents/GitHub/video-qc-utilities/demos/native/VID_20261012_115856/transform",
+  "frames": 192,
+  "tracks": 7,
+  "ocr_scans": 24,
+  "tracking_losses": 6,
+  "config": {
+    "scan_interval": 8,
+    "confidence": 0.45,
+    "padding": 10.0,
+    "blur_sigma": 18.0,
+    "feather": 6.0,
+    "tracking_type": "transform",
+    "hold_seconds": 2.0,
+    "lookback_seconds": 1.0,
+    "threads": 2,
+    "bitrate_mbps": 12.0,
+    "sideways": true,
+    "run_qc": true
+  },
+  "timings": {
+    "analysis_fps": 20.22502011447247,
+    "analysis_seconds": 9.493192042,
+    "render_seconds": 1.212409875
+  },
+  "elapsed_seconds": 11.080433291,
+  "review_required": true,
+  "acceleration": {
+    "blur": "Core Image / Metal",
+    "encoder": "VideoToolbox hardware H.264",
+    "ocr": "Apple Vision (system-selected GPU/Neural Engine)",
+    "tracking": "OpenCV arm64 / NEON"
+  }
+}

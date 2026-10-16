@@ -1,0 +1,41 @@
+[package]
+name = "video-qc"
+version = "0.2.0"
+edition = "2021"
+rust-version = "1.87"
+description = "Native video URL redaction and editorial QC"
+license = "MIT"
+build = "rust/build.rs"
+
+[lib]
+name = "video_qc"
+path = "rust/src/lib.rs"
+
+[[bin]]
+name = "video-qc"
+path = "rust/src/main.rs"
+
+[[test]]
+name = "native_media"
+path = "rust/tests/native_media.rs"
+
+[[test]]
+name = "contracts"
+path = "rust/tests/contracts.rs"
+
+[dependencies]
+anyhow = "1"
+clap = { version = "4.5", features = ["derive"] }
+regex = "1"
+psl = "2"
+rusqlite = { version = "0.32", features = ["bundled"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tempfile = "3"
+
+[build-dependencies]
+cc = "1"
+
+[profile.release]
+lto = "thin"
+codegen-units = 1

@@ -1,34 +1,28 @@
-# Performance
+# Apple Silicon performance
 
-The default favors finding tilted camera text. It performs two OCR orientations every eight frames, then tracks between scans. It is an offline CPU pipeline, not a real-time filter.
+The native pipeline uses Apple Vision, Metal/Core Image, hardware VideoToolbox H.264, and arm64/NEON OpenCV. It streams frames, tracks at half resolution, stores samples in SQLite, and performs OCR every eight frames by default. SwiftUI owns no processing loop; AVPlayer supplies native video preview.
 
-Actual fixture timings are saved in `demos/summary.json` and each bundle's `report.json`. Results include decode, OCR, tracking, rendering, and QC. The first default benchmark overlapped with a fast-profile job, so these are workload measurements rather than isolated hardware comparisons.
+Measurements from `demos/native/summary.json`, with 6 px feathering and QC enabled:
 
-The earlier upright-only benchmark on `VID_20261012_115842.mp4` processed 217 frames with 14 OCR scans. Analysis took 15.89 seconds; the complete job took 29.33 seconds. The corresponding default used 28 scans with two orientations each, taking roughly 43 seconds for analysis. This measurement preceded character-level mask refinement; `demos/fast-benchmark.json` records its exact settings.
+| Clip | Transform total | Perspective total | Native analysis | Native rendering |
+| --- | ---: | ---: | ---: | ---: |
+| 217-frame close-up | 13.03 s | 12.55 s | 19.0–19.6 fps | 1.05–1.15 s |
+| 192-frame sideways clip | 11.08 s | 10.94 s | 20.2 fps | 1.05–1.21 s |
+| 322-frame wide shot | 16.38 s | 16.95 s | 21.5–22.3 fps | 1.39–1.44 s |
+
+Earlier Python totals were 56.03, 46.16, and 77.57 seconds respectively. The native jobs took roughly one quarter of that time on the same local Apple Silicon environment. This is a complete pipeline comparison, including different OCR/render implementations and encoder settings; it is not an isolated Rust-language microbenchmark.
+
+Vision chooses its compute devices. `usesCPUOnly` is disabled; this does not establish that every OCR operation ran on the Neural Engine. Metal and hardware encoding are explicitly selected. No GPU/CPU encoder fallback is silently used.
 
 ## Tune
 
-| Setting | Effect and tradeoff |
-| --- | --- |
-| `--scan-interval 16` | Half as many OCR scans; brief appearances are easier to miss |
-| `--no-sideways` | One orientation; intended for known upright titles |
-| `--ocr-max-side 960` | Smaller OCR images; reduced recall for small text |
-| `--threads 4` | More ONNX/encoder CPU threads; benchmark on your hardware |
-| `--preset veryfast` | Faster H.264 encoding, typically larger files at the same CRF |
-| `--scan-interval 1` | Dense OCR for critical brief text; highest CPU cost |
+- Increase `--scan-interval` for fewer OCR passes. Brief URLs become easier to miss, and visibility confirmation waits for the next scan. Masks are never backfilled before detection.
+- Use `--no-sideways` when text orientation is known.
+- Transform is useful for rigid motion; perspective handles planar viewpoint changes and requires stronger feature geometry.
+- Adjust `--threads` for OpenCV tracking. Vision manages its own concurrency.
+- Set `--bitrate-mbps` for output quality/file-size needs; the native encoder uses a bitrate target rather than the old libx264 CRF.
+- Use a low OCR interval for rapid or very short URL appearances.
 
-When integrating with a native application, keep a detector session alive and inject it into successive `process` calls to reuse model initialization. Each job still receives fresh tracking state. Limit the number of concurrent jobs; ONNX, codecs, and the OS already use workers.
+Batch jobs run sequentially to avoid oversubscribing OCR, video encoders, and GPU buffers. Forward tracking retains only one previous grayscale frame, independently of clip duration. Higher resolution increases GPU/decoder/readback work and frame memory; many simultaneous URLs increase flow work. Disk usage grows with per-frame samples. The measurements above predate removal of backward tracking and remain historical workload measurements.
 
-## Bounded work
-
-- Decode and render sequentially; the complete clip is never loaded into RAM.
-- Track at half resolution with at most 60 corner features per region.
-- Retain a configurable grayscale lookback window, one second by default.
-- Keep samples in indexed SQLite and stream exports.
-- Blur only URL regions; mask overlaps read from the original frame.
-- Reuse ONNX models and set explicit ONNX/encoder thread counts.
-- Copy audio without re-encoding.
-
-Four-K footage increases decode/render cost and grayscale history memory. Large numbers of text regions increase OCR and tracking work. Long files increase disk usage, not the number of buffered frames. SQLite still stores one sample per active track per frame; plan output storage accordingly.
-
-GPU OCR/encoding are not enabled in this build. The detector protocol permits an optimized backend without replacing the pipeline. Preserve the coordinate and timestamp contract when adding one. A hardware encoder should have its own quality/timing tests before replacing libx264.
+`target/release/video-qc doctor` checks Metal availability and reports the native backend. Restricted tool sandboxes can deny Metal even when the machine has a GPU; the hardware validation was run with device access.

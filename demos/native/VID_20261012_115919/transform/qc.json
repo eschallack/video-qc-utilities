@@ -1,0 +1,160 @@
+{
+  "audio_measured": "first audio stream only",
+  "events": [
+    {
+      "end": 5.969667,
+      "kind": "silence",
+      "start": 0.0178333
+    },
+    {
+      "end": 7.734687,
+      "kind": "silence",
+      "start": 5.970646
+    }
+  ],
+  "loudness": {
+    "integrated_lufs": -55.21,
+    "range_lu": 14.0,
+    "true_peak_dbtp": -37.54
+  },
+  "notice": "Editorial measurements; no platform certification.",
+  "schema_version": 2,
+  "source": {
+    "audio": [
+      {
+        "avg_frame_rate": "0/0",
+        "bit_rate": "96030",
+        "bits_per_sample": 0,
+        "channel_layout": "mono",
+        "channels": 1,
+        "codec_long_name": "AAC (Advanced Audio Coding)",
+        "codec_name": "aac",
+        "codec_tag": "0x6134706d",
+        "codec_tag_string": "mp4a",
+        "codec_type": "audio",
+        "disposition": {
+          "attached_pic": 0,
+          "captions": 0,
+          "clean_effects": 0,
+          "comment": 0,
+          "default": 1,
+          "dependent": 0,
+          "descriptions": 0,
+          "dub": 0,
+          "forced": 0,
+          "hearing_impaired": 0,
+          "karaoke": 0,
+          "lyrics": 0,
+          "metadata": 0,
+          "multilayer": 0,
+          "non_diegetic": 0,
+          "original": 0,
+          "still_image": 0,
+          "timed_thumbnails": 0,
+          "visual_impaired": 0
+        },
+        "duration": "10.693542",
+        "duration_ts": 513290,
+        "extradata_size": 2,
+        "id": "0x2",
+        "index": 1,
+        "initial_padding": 0,
+        "nb_frames": "501",
+        "profile": "LC",
+        "r_frame_rate": "0/0",
+        "sample_fmt": "fltp",
+        "sample_rate": "48000",
+        "start_pts": 744,
+        "start_time": "0.015500",
+        "tags": {
+          "creation_time": "2026-10-12T16:59:31.000000Z",
+          "handler_name": "SoundHandle",
+          "language": "eng",
+          "vendor_id": "[0][0][0][0]"
+        },
+        "time_base": "1/48000"
+      }
+    ],
+    "duration": 10.726489,
+    "fps": "517500/17239",
+    "frames": 322,
+    "height": 720,
+    "rotation": 90,
+    "source": "/Users/evanschallack/Documents/GitHub/video-qc-utilities/tests/fixtures/video/VID_20261012_115919.mp4",
+    "time_base": "1/90000",
+    "video": {
+      "avg_frame_rate": "517500/17239",
+      "bit_rate": "12001890",
+      "bits_per_raw_sample": "8",
+      "chroma_location": "left",
+      "closed_captions": 0,
+      "codec_long_name": "H.264 / AVC / MPEG-4 AVC / MPEG-4 part 10",
+      "codec_name": "h264",
+      "codec_tag": "0x31637661",
+      "codec_tag_string": "avc1",
+      "codec_type": "video",
+      "coded_height": 1280,
+      "coded_width": 720,
+      "color_primaries": "bt709",
+      "color_range": "pc",
+      "color_space": "bt709",
+      "color_transfer": "bt709",
+      "disposition": {
+        "attached_pic": 0,
+        "captions": 0,
+        "clean_effects": 0,
+        "comment": 0,
+        "default": 1,
+        "dependent": 0,
+        "descriptions": 0,
+        "dub": 0,
+        "forced": 0,
+        "hearing_impaired": 0,
+        "karaoke": 0,
+        "lyrics": 0,
+        "metadata": 0,
+        "multilayer": 0,
+        "non_diegetic": 0,
+        "original": 0,
+        "still_image": 0,
+        "timed_thumbnails": 0,
+        "visual_impaired": 0
+      },
+      "duration": "10.726489",
+      "duration_ts": 965384,
+      "extradata_size": 32,
+      "field_order": "progressive",
+      "film_grain": 0,
+      "has_b_frames": 0,
+      "height": 1280,
+      "id": "0x1",
+      "index": 0,
+      "is_avc": "true",
+      "level": 31,
+      "nal_length_size": "4",
+      "nb_frames": "322",
+      "pix_fmt": "yuvj420p",
+      "profile": "High",
+      "r_frame_rate": "120/1",
+      "refs": 1,
+      "side_data_list": [
+        {
+          "displaymatrix": "\n00000000:            0      -65536           0\n00000001:        65536           0           0\n00000002:            0           0  1073741824\n",
+          "rotation": 90,
+          "side_data_type": "Display Matrix"
+        }
+      ],
+      "start_pts": 0,
+      "start_time": "0.000000",
+      "tags": {
+        "creation_time": "2026-10-12T16:59:31.000000Z",
+        "handler_name": "VideoHandle",
+        "language": "eng",
+        "vendor_id": "[0][0][0][0]"
+      },
+      "time_base": "1/90000",
+      "width": 720
+    },
+    "width": 1280
+  }
+}

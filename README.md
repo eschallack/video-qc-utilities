@@ -1,110 +1,101 @@
-# URL Guard · Video QC utilities
+# URL Guard · Native video QC
 
-Local URL detection, motion tracking, and blurring. A reusable Python engine, native Mac/Windows desktop UI, and DaVinci Resolve Workflow Integration script. Black and yellow throughout.
+A native **SwiftUI Mac app** with a **Rust processing engine**. Drag in videos, track URLs, render feathered polygon masks, and export editable Fusion tracking.
 
-![Desktop interface](demos/desktop.png)
+![Native Swift interface](demos/native/swift-ui.png)
 
-## Start
+## Build and open
 
-Requires Python 3.12+, [uv](https://docs.astral.sh/uv/), and FFmpeg/ffprobe on `PATH`.
-
-```sh
-# macOS
-brew install ffmpeg uv
-
-# Install the engine, desktop UI, and development tools.
-uv sync --locked --extra gui
-uv run video-qc doctor
-uv run video-qc desktop
-```
-
-Windows: install FFmpeg with your package manager, add its `bin` directory to `PATH`, install uv, then run the same uv commands. Qt dependencies are optional: `uv sync --locked` installs the engine without the desktop shell. OCR models are bundled; jobs require no model downloads or cloud service.
-
-## Blur a video
+Requires macOS 13+, Xcode Command Line Tools, Rust 1.87+, CMake, and FFmpeg/ffprobe.
 
 ```sh
-uv run video-qc blur input.mp4 --output output/my-clip
-uv run video-qc check input.mp4 --output qc.json
+brew install rust cmake ffmpeg
+bash scripts/build_macos.sh
+open "dist/URL Guard.app"
 ```
 
-The result folder must be new. Each completed job contains:
+The first build downloads and compiles a minimal OpenCV 4.12 dependency. Subsequent builds reuse it. The app bundles the Rust engine and statically linked OpenCV/SQLite. Apple frameworks provide OCR, rendering, and encoding. FFmpeg remains an external dependency for audio muxing and QC; Finder launches find Homebrew tools automatically.
 
-| Artifact | Purpose |
-| --- | --- |
-| `blurred.mp4` | Full-resolution H.264 SDR render, original audio streams copied |
-| `tracking.json` | Versioned, timestamped URL boxes in display pixels |
-| `tracking.sqlite` | Indexed per-frame tracking, suitable for large jobs |
-| `masks.fusion.lua` | Editable animated RectangleMask and Blur nodes for Fusion |
-| `qc.json` | Black/frozen-frame intervals, silence, LUFS, true peak |
-| `report.json` | Settings, track counts, timings, review notices |
+## Native interface
 
-The desktop shell supports playback, seeking, original/render switching, progress, cancellation, and opening results. It runs the engine in a separate process.
+The layout follows the supplied reference: collapsible left sidebar, Redact/Settings tabs, batch toggle, four workflow steps, output-folder picker, a large drag/drop preview canvas, and a bottom progress area. Native AVPlayer handles playback and seeking. Original/render switching and preview zoom are included. Processing runs outside the UI process.
 
-## Rendered examples
+- **Transform:** translation, rotation, and uniform scale. The mask stays an oriented quadrilateral.
+- **Perspective:** OpenCV RANSAC homography. All four corners can move independently.
+- **Feather:** Gaussian smoothing of polygon-mask edges, in output pixels. Zero gives a hard edge.
+- **Padding and blur strength:** independent pixel controls.
+- **Settings:** OCR cadence/confidence, sideways text, tracking threads, bitrate, and black/freeze/audio QC.
 
-All three supplied test videos have completed renders and tracking exports in [demos](demos/README.md). Comparison videos show **original on the left, blurred output on the right**.
+Batch jobs run sequentially. Each result folder is new; existing outputs are protected. Cancellation removes incomplete staged jobs.
 
-![Before and after](demos/VID_20261012_115842/comparison.png)
+Masks start on the first frame with a positive URL detection; they never extend into earlier frames. Forward tracking bridges OCR scans, and a negative scan ends the mask. Set **Settings → OCR every 1 frame** (CLI: `--scan-interval 1`) for detection on every frame. The default interval of eight can delay onset until the next scan and continue a tracked mask until the next scan confirms disappearance. This timing applies to rendered video and Fusion exports. Existing renders must be regenerated.
+
+## Rust CLI and reusable core
 
 ```sh
-# Reproduce the examples in a new folder.
-uv run python scripts/showcase.py --output output/showcase
+target/release/video-qc doctor
+target/release/video-qc blur input.mp4 --output output/my-clip \
+  --tracking-type perspective --feather 6 --sigma 18 --padding 10
+target/release/video-qc check input.mp4 --output qc.json
 ```
 
-## Resolve extension
+The CLI also accepts `--json-progress`, `--cancel-file`, `--scan-interval`, `--confidence`, `--threads`, `--bitrate-mbps`, `--no-sideways`, and `--no-qc`.
+
+```rust
+use video_qc::{process, Config, TrackingType};
+use std::path::Path;
+
+let settings = Config {
+    tracking_type: TrackingType::Perspective,
+    feather: 6.0,
+    ..Config::default()
+};
+let report = process(
+    Path::new("input.mp4"),
+    Path::new("output/job"),
+    &settings,
+    |event| println!("{event}"),
+)?;
+```
+
+The Rust crate separates configuration, geometry, tracking, OCR classification, storage, QC, rendering adapters, and Fusion export. Its current native media adapter uses macOS frameworks. The previous Python engine remains as an explicit reference/compatibility implementation; `video-qc-legacy` selects it. The normal Python `video-qc` entry point now forwards to Rust. Qt has been removed from the desktop path.
+
+## Apple Silicon performance
+
+- Apple Vision performs OCR with system-managed acceleration.
+- Core Image runs blur, polygon masks, feathering, and compositing on **Metal**.
+- AVFoundation/VideoToolbox encodes **hardware H.264**, with hardware encoding required.
+- OpenCV uses **arm64/NEON** for optical flow, affine fitting, and homographies.
+- Frames stream with one previous grayscale frame for tracking; samples live in indexed SQLite.
+
+Measured native analysis: **19–22 fps** across the supplied clips. The first clip took **12.6–13.0 seconds**, versus **56.0 seconds** for the earlier Python job. Native rendering took about **1.0–1.4 seconds** per clip. These are complete local workload measurements, not a guarantee of real-time OCR. See [performance](docs/performance.md).
+
+## Outputs and demos
+
+Each result contains `blurred.mp4`, `tracking.json`, `tracking.sqlite`, `masks.fusion.lua`, `qc.json`, and `report.json`. Tracking schema 2 includes the **actual four-corner polygon** per frame, plus compatibility bounding boxes and presentation times.
+
+All three test videos were rendered in **both tracking modes**, with 6 px feathering. [Watch the native comparisons and inspect tracking](demos/native/README.md). Independent verification found zero video timestamp error and identical audio payloads/timestamps in all six full-resolution renders.
+
+## Resolve
 
 ```sh
-uv run python scripts/build_resolve.py
+python3 scripts/build_resolve.py
 ```
 
-This prepares `dist/resolve/URL Guard.py` and its companion configuration. Copy both files to a Resolve script/plugin folder. See [installation and Fusion import](docs/resolve.md).
+Copy both files from `dist/resolve` to a Resolve Workflow Integration/script folder. The panel now opens the Swift app. Fusion export uses animated **CornerPositioner → BitmapMask** graphs, stepped visibility, and feathering. The new graph was validated in a temporary composition on **Resolve 21.0.1.11**. [Installation and coordinate requirements](docs/resolve.md).
 
-The panel opens the current clip in the native app, imports a completed render to the media pool, and imports animated masks onto the matching source clip. It uses Blackmagic's supported Python Workflow Integration mechanism. No proprietary bridge binary is redistributed.
-
-The generated importer was exercised in a hidden temporary Fusion composition on **Resolve 21.0.1.11**. Mask positions, gap visibility, node creation, and MediaOut wiring passed. The built Resolve panel also loaded and closed successfully. See [validation](docs/testing.md).
-
-## Use the engine from another application
-
-```python
-from video_qc import Config
-from video_qc.pipeline import process
-
-report = process(
-    "input.mp4",
-    "output/job-001",
-    Config(scan_interval=8, threads=2),
-    progress=lambda event: print(event),
-    cancelled=lambda: False,
-)
-```
-
-Native applications can call this API or consume newline-delimited JSON from `video-qc blur ... --json-progress`. A custom `Detector` can replace RapidOCR without changing tracking, rendering, or exports. See [architecture and contracts](docs/architecture.md).
-
-## Performance and limits
-
-OCR runs every eighth frame by default. OpenCV tracks every frame. One second of grayscale history supports backward tracking. SQLite keeps tracking off the heap; rendering blurs only detected regions. Models load once per job. ONNX/encoder thread counts are bounded.
-
-These camera clips are an offline OCR workload. Current default measurements are roughly **5–6 analysis frames/second** on this machine. A faster upright-only configuration reduced the first clip's analysis to about **16 seconds for 217 frames**. This is not a real-time claim. See [measurements and tuning](docs/performance.md).
+## Tests
 
 ```sh
-# Faster for known upright titles. Requires closer coverage review.
-uv run video-qc blur input.mp4 --output output/fast \
-  --scan-interval 16 --no-sideways --preset veryfast
-
-# Dense OCR for brief URLs. More CPU work.
-uv run video-qc blur input.mp4 --output output/dense --scan-interval 1
+cargo test --locked -- --test-threads=1
+cargo clippy --all-targets --locked -- -D warnings
+cargo fmt --check
+URL_GUARD_ENGINE="$PWD/target/release/video-qc" swift test --package-path macos
+uv run pytest -q
 ```
 
-Review the entire render. Small, occluded, distorted, or briefly visible URLs can be missed. Some OCR errors resemble domains. Fusion masks need matching display dimensions and an unretimed clip. Rendering supports **8-bit SDR**, not HDR or 10-bit delivery masters. Platform delivery certification, subtitle checks, and platform-specific presets are not included.
+Hardware tests require access to Metal/VideoToolbox. The Swift integration test uses `URL_GUARD_ENGINE` to run a real render. Tests cover known projective motion, affine motion, mask feathering, render locality, orientation, variable timestamps, copied audio, cancellation, settings propagation, batch processing, progress framing, and compatibility behavior. See [validation details](docs/testing.md).
 
-## Test
+Rendering currently supports **8-bit SDR**. Small, distorted, occluded, or very brief URLs can be missed; review each render. Fusion imports need matching display dimensions and an unretimed clip. The native app/media backend target macOS; the legacy Python CLI remains available for other platforms. Platform-specific delivery certification and HDR mastering are outside this build.
 
-```sh
-uv run ruff check .
-uv run ruff format --check .
-uv run pytest -q --cov=video_qc
-```
-
-Tests cover real fixture OCR, optical-flow motion, region-only blur, variable timestamps, audio packet preservation, backward tracking, cancellation, QC filters, CLI events, desktop jobs, and Fusion coordinates/visibility. CI is configured for macOS, Windows, and Linux. Windows CI has not been run from this workspace.
-
-Libraries: [RapidOCR](https://github.com/RapidAI/RapidOCR), [OpenCV](https://docs.opencv.org/), [PyAV](https://pyav.org/), [FFmpeg](https://ffmpeg.org/ffmpeg-filters.html), [tldextract](https://github.com/john-kurkowski/tldextract), [Typer](https://typer.tiangolo.com/), and [Qt/PySide](https://doc.qt.io/qtforpython-6/). Project license: [MIT](LICENSE). See [third-party notes](docs/third-party.md) before distributing an application bundle.
+Project license: [MIT](LICENSE). [Architecture](docs/architecture.md) · [Third-party notes](docs/third-party.md).

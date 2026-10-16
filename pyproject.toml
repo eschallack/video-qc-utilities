@@ -1,6 +1,6 @@
 [project]
 name = "video-qc-utilities"
-version = "0.1.0"
+version = "0.2.0"
 description = "Modular URL redaction, tracking, and editorial video QC"
 readme = "README.md"
 requires-python = ">=3.12"
@@ -20,6 +20,7 @@ build-backend = "hatchling.build"
 
 [project.scripts]
 video-qc = "video_qc.cli:app"
+video-qc-legacy = "video_qc.legacy_cli:app"
 video-qc-desktop = "video_qc.desktop:main"
 
 [tool.hatch.build.targets.wheel]
@@ -36,10 +37,7 @@ markers = ["integration: uses FFmpeg and real media", "ocr: runs bundled ONNX mo
 line-length = 110
 
 [project.optional-dependencies]
-gui = [
-    "pyside6-addons>=6.12.0",
-    "pyside6-essentials>=6.12.0",
-]
+gui = []
 
 [dependency-groups]
 dev = [

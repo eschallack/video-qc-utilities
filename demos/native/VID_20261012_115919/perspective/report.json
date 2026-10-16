@@ -1,0 +1,36 @@
+{
+  "schema_version": 2,
+  "source": "/Users/evanschallack/Documents/GitHub/video-qc-utilities/tests/fixtures/video/VID_20261012_115919.mp4",
+  "output": "/Users/evanschallack/Documents/GitHub/video-qc-utilities/demos/native/VID_20261012_115919/perspective",
+  "frames": 322,
+  "tracks": 11,
+  "ocr_scans": 41,
+  "tracking_losses": 8,
+  "config": {
+    "scan_interval": 8,
+    "confidence": 0.45,
+    "padding": 10.0,
+    "blur_sigma": 18.0,
+    "feather": 6.0,
+    "tracking_type": "perspective",
+    "hold_seconds": 2.0,
+    "lookback_seconds": 1.0,
+    "threads": 2,
+    "bitrate_mbps": 12.0,
+    "sideways": true,
+    "run_qc": true
+  },
+  "timings": {
+    "analysis_fps": 21.48877198733694,
+    "analysis_seconds": 14.984569625,
+    "render_seconds": 1.438099958
+  },
+  "elapsed_seconds": 16.954305042,
+  "review_required": true,
+  "acceleration": {
+    "blur": "Core Image / Metal",
+    "encoder": "VideoToolbox hardware H.264",
+    "ocr": "Apple Vision (system-selected GPU/Neural Engine)",
+    "tracking": "OpenCV arm64 / NEON"
+  }
+}

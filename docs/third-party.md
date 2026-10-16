@@ -1,9 +1,9 @@
-# Distribution notes
+# Third-party components
 
-The project is MIT licensed. Dependencies retain their own licenses. Pinning in `uv.lock` makes the installed environment reproducible; it does not replace license notices for a distributed desktop installer.
+The project is MIT licensed. Native processing uses Apple's installed AVFoundation, Vision, Core Image, Metal, VideoToolbox, and Accelerate frameworks. SwiftUI/AVPlayer supply the app interface and preview. No proprietary Resolve executable or SDK bridge binary is redistributed.
 
-RapidOCR/its bundled OCR models, ONNX Runtime, OpenCV, NumPy, tldextract's bundled suffix data, PyAV, Typer, Rich, and Qt/PySide should be reviewed for the versions being shipped. PySide uses Qt's applicable LGPL/commercial licensing terms. FFmpeg licensing depends on build configuration; libx264 introduces GPL-related distribution considerations. PyAV wheels can carry their own FFmpeg build.
+OpenCV 4.12 is built from its official source with a minimal module set and linked statically, including its arm64 Carotene/NEON implementation. Rust dependencies are pinned in `Cargo.lock`; they include clap, serde, regex, psl/public suffix data, rusqlite/SQLite, and tempfile. Dependencies retain their own licenses and notices.
 
-The Resolve adapter relies on Blackmagic's installed scripting APIs. No `WorkflowIntegration.node`, Resolve executable, or Blackmagic SDK bundle is copied into this project. Use the end user's installed host.
+FFmpeg is installed separately and used for stream-copy audio, QC, and demonstration comparisons. FFmpeg licensing depends on the installed build. The legacy Python implementation retains its original library requirements; Qt is no longer a dependency of the native app.
 
-The demo videos are user-provided fixtures. Confirm rights before redistributing them. The system leaves network/model downloads out of processing jobs; source files and OCR results remain local.
+The local `.app` is ad-hoc signed for use on the build machine. External distribution needs the appropriate signing, third-party notices, and packaging choices. Test videos are user-provided fixtures; confirm their rights before redistribution.

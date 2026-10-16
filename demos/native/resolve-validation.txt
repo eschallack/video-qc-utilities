@@ -1,0 +1,11 @@
+
+DaVinci Resolve Script Interpreter
+Copyright (C) 2005 - 2026 Blackmagic Design Pty. Ltd.
+
+TopLeft0.517578125	0.419444444	
+TopRight0.5921875	0.419444444	
+BottomRight0.5921875	0.375000001	
+BottomLeft0.517578125	0.375	
+Feather:0.0046875	
+Channel:Alpha	
+NATIVE FUSION VALIDATION PASSED:21.0.1.11	

@@ -1,0 +1,44 @@
+[
+  {
+    "clip": "VID_20261012_115842.mp4",
+    "mode": "perspective",
+    "frames": 217,
+    "max_pts_error_seconds": 0.0,
+    "audio_payloads_and_pts_identical": true
+  },
+  {
+    "clip": "VID_20261012_115842.mp4",
+    "mode": "transform",
+    "frames": 217,
+    "max_pts_error_seconds": 0.0,
+    "audio_payloads_and_pts_identical": true
+  },
+  {
+    "clip": "VID_20261012_115856.mp4",
+    "mode": "perspective",
+    "frames": 192,
+    "max_pts_error_seconds": 0.0,
+    "audio_payloads_and_pts_identical": true
+  },
+  {
+    "clip": "VID_20261012_115856.mp4",
+    "mode": "transform",
+    "frames": 192,
+    "max_pts_error_seconds": 0.0,
+    "audio_payloads_and_pts_identical": true
+  },
+  {
+    "clip": "VID_20261012_115919.mp4",
+    "mode": "perspective",
+    "frames": 322,
+    "max_pts_error_seconds": 0.0,
+    "audio_payloads_and_pts_identical": true
+  },
+  {
+    "clip": "VID_20261012_115919.mp4",
+    "mode": "transform",
+    "frames": 322,
+    "max_pts_error_seconds": 0.0,
+    "audio_payloads_and_pts_identical": true
+  }
+]

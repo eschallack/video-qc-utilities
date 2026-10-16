@@ -1,42 +1,43 @@
-# Validation
+# Native validation
 
-Local validation uses Python 3.12 on macOS.
+The current suite covers three layers: Rust core/native media, Swift app state/process integration, and the preserved Python compatibility engine. Hardware tests ran with actual Metal/VideoToolbox access.
 
-Final local result: **48 tests passed**, **89% line coverage**. Ruff checks and formatting passed. Source and wheel distributions were built and their contents checked.
-
-Reproduce:
+Final local results: **22 Rust tests**, **13 Swift tests** including the real hardware integration and native preview regression tests, and **50 Python compatibility tests** passed. Cargo fmt, Clippy with warnings denied, Ruff checks/formatting, and the app's code-signature verification passed.
 
 ```sh
-uv sync --locked --extra gui
+cargo test --locked -- --test-threads=1
+cargo clippy --all-targets --locked -- -D warnings
+cargo fmt --check
+URL_GUARD_ENGINE="$PWD/target/release/video-qc" swift test --package-path macos
+uv run pytest -q
 uv run ruff check .
 uv run ruff format --check .
-uv run pytest -q --cov=video_qc --cov-report=term-missing
 ```
 
-`ocr` tests run the bundled models against every supplied clip and synthetic upright/sideways text. `integration` tests use FFmpeg and PyAV. `gui` tests use Qt offscreen and a real engine child process. Lua tests use the `lua` interpreter if present; the host validation below covers actual Fusion behavior.
+## What is checked
 
-## Meaningful checks
+Rust tests validate known rotation/scale/translation and known projective warps. Perspective corners are compared with the ground-truth homography and must change independently. Blank tracking frames fail without drifting. Geometry tests cover padding, overlap, convexity, and invalid coordinates. Contract tests preserve polygon coordinates, gaps, settings, and identity association.
 
-- Variable source frame times survive rendering within 0.1 ms in the synthetic VFR test.
-- Rendered frame count equals decoded source frame count.
-- Compressed audio packet payload hashes are identical before/after.
-- Laplacian edge energy drops inside the URL while a distant colored region remains within encoding tolerance.
-- Known translation moves the optical-flow box by the expected amount.
-- New detections backfill earlier frames through backward flow.
-- Empty detection sets yield no tracks and a playable output.
-- Cancellation removes staged outputs and terminates child media processes.
-- FFmpeg recognizes known black/frozen/silent synthetic intervals.
-- URL detection in a sentence excludes surrounding words using OCR character boxes.
-- The CLI emits valid newline-delimited JSON, errors correctly, and accepts cancellation markers.
-- Desktop jobs complete with a playable render; desktop cancellation publishes no result.
-- Fusion coordinates flip Y correctly, padding matches rendering, stepped keys disable gaps, and the blur chain connects to MediaOut.
+Real media tests decode/render a provided fixture through Apple frameworks. They check orientation, frame counts, variable presentation times, copied audio hashes/timestamps, reduced edge energy inside a URL, and unchanged distant pixels within encoding tolerance. A separate Metal test renders hard and feathered masks and compares edge/distant pixels. Cancellation tests verify no incomplete results or staging folders survive.
 
-Each supplied demonstration was also decoded again to compare its frame count and presentation times with the source. Audio payload and timestamp comparisons are recorded in `demos/verification.json`. Comparisons are full renders, not still-image simulations.
+An appearing/disappearing URL regression uses a persistent textured background so optical flow remains possible without the text. In both transform and perspective modes, samples begin on the first positive OCR scan, negative scans stop masking, and reappearance starts a new segment. A scan interval of one confirms that every masked frame has an OCR detection and no mask survives the exact disappearance frame. Rendered background detail before detection and blur after detection are checked; Fusion exports use the same samples and stepped visibility keys.
 
-## Live Resolve
+Swift tests check mask settings reaching Rust, invalid settings, progress/report decoding, file acceptance, batch deduplication, output collisions, settings snapshots, subprocess framing/errors, and missing-engine handling. With `URL_GUARD_ENGINE`, a real Swift AppModel → process runner → Rust → Metal render is produced and its settings/output verified.
 
-Resolve **21.0.1.11** was launched and accessed with the installed `fuscript` interpreter. A hidden temporary composition received Background → MediaOut, then the generated importer through `Composition.RunScript`. The check verified actual tool creation, Center `(0.2025, 0.645)`, Level values `1, 1, 0, 1, 0` at frames `0, 1, 3, 5, 6`, and final MediaOut wiring. The composition was closed.
+Native preview regression tests mount a real SwiftUI hosting window, import a supplied video after the empty drop state, await decoder readiness, play it, and switch sources. They also verify player replacement reuses the AppKit view and teardown detaches it. Earlier model-only import tests did not instantiate the video view and missed a macOS 15.3.1 / Swift 5.9.2 runtime abort: `failed to demangle superclass of VideoPlayerView`. The preview now embeds AppKit `AVPlayerView` directly, preserving native playback controls without the failing SwiftUI `VideoPlayer` overlay.
 
-`demos/resolve-host-validation.txt` records this check. The built Python panel also loaded in Resolve; its Scan, Masks, and Status controls were inspected before closing. This is recorded in `demos/resolve-panel-validation.txt`. A Lua contract harness runs in pytest; it does not substitute for the real host check. The panel's complete clip workflow still needs interactive acceptance, particularly timeline transforms/retiming and Windows installation.
+Python tests retain prior OCR/media/CLI regression coverage. The primary Python launcher is separately tested to forward paths and perspective/feather settings to the Rust executable. Qt is no longer used.
 
-CI is configured on Ubuntu, macOS, and Windows. This local run does not establish that remote CI has passed. Linux CI runs engine tests; desktop UI targets macOS/Windows.
+## Fixture verification
+
+All three supplied clips were rendered in transform and perspective modes. `demos/native/verification.json` independently compares decoded video presentation times and compressed audio packet payloads/timestamps against each source. All six have matching frame counts, zero reported video timestamp error, and identical audio data/timing.
+
+Comparisons are actual rendered movies. The source is left, native result right. The full-resolution `blurred.mp4` preserves the source timing; resized comparison movies are review artifacts.
+
+## Live Resolve and UI
+
+The new importer ran through `Composition.RunScript` in a hidden temporary Fusion composition on Resolve **21.0.1.11**. CornerPositioner, BitmapMask, and Blur nodes were created. All four animated corner inputs, Alpha channel, 6/1280 normalized feather, enabled mask level, and MediaOut connections were checked. The temporary composition was closed; no existing timeline was edited. Evidence: `demos/native/resolve-validation.txt`.
+
+The release Swift `.app` was launched and its own native view was captured without screen-recording APIs. The sidebar, drag/drop target, tracking selector, feather controls, and output/render steps are visible in `demos/native/swift-ui.png`. Preview mounting and actual playback are now automated. OS file dialogs, physical drag gestures, and transport-button interactions still merit interactive acceptance.
+
+CI runs native tests/builds on macOS and compatibility checks separately. These local results do not claim that a remote CI run has completed. This native media adapter is macOS-only.

@@ -2,7 +2,7 @@ import json
 
 from typer.testing import CliRunner
 
-from video_qc.cli import app
+from video_qc.legacy_cli import app
 
 runner = CliRunner()
 

@@ -1,5 +1,7 @@
 # Rendered demonstrations
 
+The current Swift/Rust results are in [native demos](native/README.md), including both tracking modes and feathering. The folders below are the preserved Python baseline.
+
 Each supplied source has its own result folder. **Comparison: original left, blurred right.** Audio is retained. The full-resolution `blurred.mp4` is the output to inspect; comparison movies are resized for review.
 
 | Clip | Comparison | Full render | Tracking | Fusion masks |

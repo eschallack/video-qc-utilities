@@ -19,9 +19,6 @@ def current_item(resolve):
 
 def launch(resolve, fusion, bmd, script_path):
     config = json.loads(Path(script_path).with_name("url_guard_config.json").read_text())
-    python = config["python"]
-    if not Path(python).is_file():
-        raise RuntimeError("Configured Python no longer exists. Rebuild the Resolve extension.")
     ui = fusion.UIManager
     dispatcher = bmd.UIDispatcher(ui)
     win_id = "com.videoqc.urlguard"
@@ -81,7 +78,10 @@ def launch(resolve, fusion, bmd, script_path):
         source = item.GetMediaPoolItem().GetClipProperty("File Path")
         if not source or not Path(source).is_file():
             raise RuntimeError("Clip source file is unavailable. Relink media first.")
-        subprocess.Popen([python, "-m", "video_qc.desktop", source], cwd=config["project_root"])
+        app = Path(config.get("native_app", "")) / "Contents/MacOS/URLGuard"
+        if not app.is_file():
+            raise RuntimeError("Build the Swift app first: bash scripts/build_macos.sh")
+        subprocess.Popen([str(app), source], cwd=config["project_root"])
         items["Status"].Text = "Desktop opened. Render there, then choose its result folder here."
 
     def browse(_event):

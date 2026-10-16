@@ -1,0 +1,20 @@
+{
+  "rust_tests": 22,
+  "detection_gated_mask_timing": true,
+  "swift_tests": 13,
+  "native_preview_import_and_playback": true,
+  "python_compatibility_tests": 50,
+  "hardware_tests_used_real_metal": true,
+  "swift_to_rust_end_to_end": true,
+  "resolve_version": "21.0.1.11",
+  "resolve_corner_and_feather_graph_validated": true,
+  "native_fixture_renders": 6,
+  "video_and_audio_verification": "verification.json",
+  "checks": [
+    "cargo fmt",
+    "cargo clippy -D warnings",
+    "ruff check",
+    "ruff format",
+    "codesign verify --deep --strict"
+  ]
+}

@@ -1,0 +1,56 @@
+[
+  {
+    "clip": "VID_20261012_115842.mp4",
+    "mode": "transform",
+    "frames": 217,
+    "tracks": 5,
+    "analysis_fps": 19.02325012644818,
+    "elapsed_seconds": 13.031750958,
+    "render_seconds": 1.1534155
+  },
+  {
+    "clip": "VID_20261012_115842.mp4",
+    "mode": "perspective",
+    "frames": 217,
+    "tracks": 5,
+    "analysis_fps": 19.611356166072312,
+    "elapsed_seconds": 12.551411667,
+    "render_seconds": 1.049256916
+  },
+  {
+    "clip": "VID_20261012_115856.mp4",
+    "mode": "transform",
+    "frames": 192,
+    "tracks": 7,
+    "analysis_fps": 20.22502011447247,
+    "elapsed_seconds": 11.080433291,
+    "render_seconds": 1.212409875
+  },
+  {
+    "clip": "VID_20261012_115856.mp4",
+    "mode": "perspective",
+    "frames": 192,
+    "tracks": 6,
+    "analysis_fps": 20.214512032405334,
+    "elapsed_seconds": 10.936884167,
+    "render_seconds": 1.05352975
+  },
+  {
+    "clip": "VID_20261012_115919.mp4",
+    "mode": "transform",
+    "frames": 322,
+    "tracks": 11,
+    "analysis_fps": 22.28361384749785,
+    "elapsed_seconds": 16.381347375,
+    "render_seconds": 1.388242291
+  },
+  {
+    "clip": "VID_20261012_115919.mp4",
+    "mode": "perspective",
+    "frames": 322,
+    "tracks": 11,
+    "analysis_fps": 21.48877198733694,
+    "elapsed_seconds": 16.954305042,
+    "render_seconds": 1.438099958
+  }
+]
